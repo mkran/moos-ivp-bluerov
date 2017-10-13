@@ -1,25 +1,25 @@
 ##############################################################################
-# FILE:        moos-ivp-extend/README
-# DATE:        2014/01/02
-# DESCRIPTION: Contains important information regarding the moos-ivp-extend
+# FILE:        moos-ivp-bluerov/README
+# DATE:        2017/10/12
+# DESCRIPTION: Contains important information regarding the moos-ivp-bluerov
 #              repository.
 ##############################################################################
 
 #=============================================================================
 # Introduction
 #=============================================================================
-The moos-ivp-extend repository contains examples for extending the MOOS-IvP
+The moos-ivp-bluerov repository contains examples for extending the MOOS-IvP
 Autonomy system. This includes a MOOS application and an IvP behavior.
 
 
 #=============================================================================
 # Directory Structure
 #=============================================================================
-The directory structure for the moos-ivp-extend is decribed below:
+The directory structure for the moos-ivp-bluerov is decribed below:
 
 bin              - Directory for generated executable files
 build            - Directory for build object files
-build.sh         - Script for building moos-ivp-extend
+build.sh         - Script for building moos-ivp-bluerov
 CMakeLists.txt   - CMake configuration file for the project
 data             - Directory for storing data
 lib              - Directory for generated library files
@@ -71,7 +71,7 @@ additional help.
 #=============================================================================
 # Environment variables
 #=============================================================================
-The moos-ivp-extend binaries files should be added to your path to allow them
+The moos-ivp-bluerov binaries files should be added to your path to allow them
 to be launched from pAntler. 
 
 In order for generated IvP Behaviors to be recognized by the IvP Helm, you

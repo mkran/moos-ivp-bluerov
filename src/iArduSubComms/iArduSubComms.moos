@@ -1,0 +1,9 @@
+//------------------------------------------------
+// iArduSubComms config block
+
+ProcessConfig = iArduSubComms
+{
+   AppTick   = 4
+   CommsTick = 4
+}
+

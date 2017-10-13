@@ -9,6 +9,7 @@
 #include "MBUtils.h"
 #include "ACTable.h"
 #include "MavlinkConverter.h"
+#include "mavlink.h"
 
 using namespace std;
 
@@ -51,12 +52,40 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
      if(key == "FOO") 
        cout << "great!";
      else if(key == "TARGET_SYSTEM") { // check for incoming target system id
+       uint8_t system_id = 0;
+       uint8_t component_id = 0;
+       mavlink_message_t msg;
+       uint32_t time_boot_ms = 0;
+       uint8_t target_system = 0;
+       uint8_t target_component = 0;
+       uint8_t coordinate_frame = 5;
+       uint16_t type_mask = 0;
+       int32_t lat_int = 0;
+       int32_t lon_int = 0;
+       float alt = 0;
+       float vx = 0;
+       float vy = 0;
+       float vz = 0;
+       float afx = 0;
+       float afy = 0;
+       float afz = 0;
+       float yaw = 0;
+       float yaw_rate = 0;
+
+       uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&msg,time_boot_ms,target_system,target_component,coordinate_frame,type_mask,lat_int, lon_int, alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
        // mavlink_set_position_target_global_int_t sp;
        // sp.target_system = 0;
-       // char buf[300];
+       char buf[300];
 
-       // unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &message)
-       // Notify("MAVLINK_MESSAGE",buf);
+       unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &msg);
+
+       //send binary format to MOOSDB
+       //std::vector<unsigned char> X(1000);
+       Notify("MAVLINK_MESSAGE",(void*)buf,len);
+
+       //debug of mavlink_message_t for confirmation
+       uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&msg);
+       Notify("VERIFY_FRAME",test_frame);
      }
 
      else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp

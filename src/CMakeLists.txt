@@ -1,7 +1,7 @@
 ##############################################################################
-# FILE:        moos-ivp-extend/src/CMakeLists.txt
+# FILE:        moos-ivp-bluerov/src/CMakeLists.txt
 # DATE:        2010/09/07
-# DESCRIPTION: CMakeLists.txt file for the moos-ivp-extend source directory
+# DESCRIPTION: CMakeLists.txt file for the moos-ivp-bluerov source directory
 ##############################################################################
 
 

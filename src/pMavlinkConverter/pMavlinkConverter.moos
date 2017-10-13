@@ -1,0 +1,9 @@
+//------------------------------------------------
+// pMavlinkConverter config block
+
+ProcessConfig = pMavlinkConverter
+{
+   AppTick   = 4
+   CommsTick = 4
+}
+

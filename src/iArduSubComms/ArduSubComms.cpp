@@ -17,6 +17,9 @@ using namespace std;
 
 ArduSubComms::ArduSubComms()
 {
+  m_mavlink_msg = new std::string();
+  m_mavlink_port = "/dev/ttyUSB0";
+  m_mavlink_baud = 115200;
 }
 
 //---------------------------------------------------------
@@ -38,23 +41,29 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &msg = *p;
     string key    = msg.GetKey();
 
+    if(p->IsName("MAVLINK_MESSAGE")) {
+      m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
+      boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+      delete m_mavlink_msg;
+    }
+
 #if 0 // Keep these around just for template
     string comm  = msg.GetCommunity();
     double dval  = msg.GetDouble();
-    string sval  = msg.GetString(); 
+    string sval  = msg.GetString();
     string msrc  = msg.GetSource();
     double mtime = msg.GetTime();
     bool   mdbl  = msg.IsDouble();
     bool   mstr  = msg.IsString();
 #endif
 
-     if(key == "FOO") 
+     if(key == "FOO")
        cout << "great!";
 
      else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
        reportRunWarning("Unhandled Mail: " + key);
    }
-	
+
    return(true);
 }
 
@@ -111,8 +120,11 @@ bool ArduSubComms::OnStartUp()
       reportUnhandledConfigWarning(orig);
 
   }
-  
-  registerVariables();	
+
+  m_serial = boost::shared_ptr<boost::asio::serial_port>(new boost::asio::serial_port(m_io, m_mavlink_port));
+  m_serial->set_option(boost::asio::serial_port_base::baud_rate(m_mavlink_baud));
+
+  registerVariables();
   return(true);
 }
 
@@ -122,6 +134,7 @@ bool ArduSubComms::OnStartUp()
 void ArduSubComms::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
+  Register("MAVLINK_MESSAGE", 0);
   // Register("FOOBAR", 0);
 }
 
@@ -129,7 +142,7 @@ void ArduSubComms::registerVariables()
 //------------------------------------------------------------
 // Procedure: buildReport()
 
-bool ArduSubComms::buildReport() 
+bool ArduSubComms::buildReport()
 {
   m_msgs << "============================================ \n";
   m_msgs << "File:                                        \n";

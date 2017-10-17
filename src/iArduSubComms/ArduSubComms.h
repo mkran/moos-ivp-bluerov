@@ -10,6 +10,7 @@
 
 #include <boost/asio.hpp>
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
+#include "mavlink.h"
 
 class ArduSubComms : public AppCastingMOOSApp
 {

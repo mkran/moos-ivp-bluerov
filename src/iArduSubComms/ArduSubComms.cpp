@@ -10,6 +10,12 @@
 #include "ACTable.h"
 #include "ArduSubComms.h"
 
+// Max rate to receive MOOS updates (0 indicates no rate, get all)
+#define DEFAULT_REGISTER_RATE 0.0
+
+// Enable/disable debug code
+#define DEBUG 1
+
 using namespace std;
 
 //---------------------------------------------------------
@@ -41,27 +47,43 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &msg = *p;
     string key    = msg.GetKey();
 
-    if(p->IsName("MAVLINK_MESSAGE")) {
+    if(p->IsName("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT")) {
       m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
       boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+
+      //debug of mavlink_message_t for confirmation
+      /*********************************************/
+      if (DEBUG){
+        mavlink_message_t mavlink_msg_buf; //INSTANTIATE THE BINARY MAVLINK MESSAGE BUFFER HERE TO TEST
+        uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&mavlink_msg_buf);
+        Notify("VERIFY_FRAME",test_frame);
+
+        float test_vx = mavlink_msg_set_position_target_global_int_get_vx(&mavlink_msg_buf);
+        Notify("VERIFY_VX",test_vx);
+
+        uint32_t test_time = mavlink_msg_set_position_target_global_int_get_time_boot_ms(&mavlink_msg_buf);
+        Notify("VERIFY_TIME",test_time);
+
+        float test_yaw = mavlink_msg_set_position_target_global_int_get_yaw(&mavlink_msg_buf);
+        Notify("VERIFY_YAW",test_yaw);
+      }
+      /***********************************************/
+      
       delete m_mavlink_msg;
     }
 
-#if 0 // Keep these around just for template
-    string comm  = msg.GetCommunity();
-    double dval  = msg.GetDouble();
-    string sval  = msg.GetString();
-    string msrc  = msg.GetSource();
-    double mtime = msg.GetTime();
-    bool   mdbl  = msg.IsDouble();
-    bool   mstr  = msg.IsString();
-#endif
+    #if 0 // Keep these around just for template
+      string comm  = msg.GetCommunity();
+      double dval  = msg.GetDouble();
+      string sval  = msg.GetString();
+      string msrc  = msg.GetSource();
+      double mtime = msg.GetTime();
+      bool   mdbl  = msg.IsDouble();
+      bool   mstr  = msg.IsString();
+    #endif
 
-     if(key == "FOO")
-       cout << "great!";
-
-     else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
-       reportRunWarning("Unhandled Mail: " + key);
+    if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
+      reportRunWarning("Unhandled Mail: " + key);
    }
 
    return(true);
@@ -134,8 +156,7 @@ bool ArduSubComms::OnStartUp()
 void ArduSubComms::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
-  Register("MAVLINK_MESSAGE", 0);
-  // Register("FOOBAR", 0);
+  Register("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT", DEFAULT_REGISTER_RATE);
 }
 
 

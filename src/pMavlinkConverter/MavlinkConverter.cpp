@@ -9,7 +9,15 @@
 #include "MBUtils.h"
 #include "ACTable.h"
 #include "MavlinkConverter.h"
-#include "mavlink.h"
+#include "time.h"
+#include "sys/time.h"
+#include "math.h"
+
+// Max rate to receive MOOS updates (0 indicates no rate, get all)
+#define DEFAULT_REGISTER_RATE 0.0
+
+// Enable/disable debug code
+#define DEBUG 1
 
 using namespace std;
 
@@ -18,6 +26,28 @@ using namespace std;
 
 MavlinkConverter::MavlinkConverter()
 {
+  // m_mavlink_msg = new mavlink_message_t();
+  system_id = 0;
+  component_id = 0;
+  time_boot_ms = 0;
+  target_system = 0;
+  target_component = 0;
+  coordinate_frame = 0;
+  type_mask = 0;
+  lat_int = 0;
+  lon_int = 0;
+  alt = 0.0;
+  vx = 0.0;
+  vy = 0.0;
+  vz = 0.0;
+  afx = 0.0;
+  afy = 0.0;
+  afz = 0.0;
+  yaw = 0.0;
+  yaw_rate = 0.0;
+  m_desired_speed = 0.0;
+  m_desired_heading_deg = 0.0;
+  m_desired_heading_rad = 0.0;
 }
 
 //---------------------------------------------------------
@@ -25,6 +55,15 @@ MavlinkConverter::MavlinkConverter()
 
 MavlinkConverter::~MavlinkConverter()
 {
+}
+
+// ----------------------------------------------------------------------------------
+//   Time
+// ------------------- ---------------------------------------------------------------
+uint64_t get_time_usec(){
+  static struct timeval _time_stamp;
+  gettimeofday(&_time_stamp, NULL);
+  return _time_stamp.tv_sec*1000000 + _time_stamp.tv_usec;
 }
 
 //---------------------------------------------------------
@@ -38,61 +77,94 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
   for(p=NewMail.begin(); p!=NewMail.end(); p++) {
     CMOOSMsg &msg = *p;
     string key    = msg.GetKey();
+    cout<<"Key: "<<key<<endl;
+    double mdbl=-1.0;
+    if(msg.IsDouble()){
+      mdbl=msg.GetDouble();
+    }
+    string mstr="";
+    if(msg.IsString()){
+      mstr=msg.GetString();
+    }
+    
+    #if 0 // Keep these around just for template
+        string comm  = msg.GetCommunity();
+        double dval  = msg.GetDouble();
+        string sval  = msg.GetString(); 
+        string msrc  = msg.GetSource();
+        double mtime = msg.GetTime();
+        bool   mdbl  = msg.IsDouble();
+        bool   mstr  = msg.IsString();
+    #endif
+    
+    if(key == "DESIRED_SPEED") { // check for incoming target speed 
+      if(mdbl>=0){
+        m_desired_speed = (float)mdbl;
+      }else if(mstr.compare("") != 0){
+        m_desired_speed = atof(mstr.c_str());
+      }else{
+        m_desired_speed = -2.0;
+        cout<<"Crappy Speed!"<<endl;
+      }
+    }
 
-#if 0 // Keep these around just for template
-    string comm  = msg.GetCommunity();
-    double dval  = msg.GetDouble();
-    string sval  = msg.GetString(); 
-    string msrc  = msg.GetSource();
-    double mtime = msg.GetTime();
-    bool   mdbl  = msg.IsDouble();
-    bool   mstr  = msg.IsString();
-#endif
+    if(key == "DESIRED_HEADING") {
+      if(mdbl>=0){
+        m_desired_heading_deg = (float)mdbl;
+      }else if(mstr.compare("") != 0){
+        m_desired_heading_deg = atof(mstr.c_str());
+      }else{
+        m_desired_heading_deg = -4.0;
+        cout<<"Crappy Heading!"<<endl;
+      }
+    }
 
-     if(key == "FOO") 
-       cout << "great!";
-     else if(key == "TARGET_SYSTEM") { // check for incoming target system id
-       uint8_t system_id = 0;
-       uint8_t component_id = 0;
-       mavlink_message_t msg;
-       uint32_t time_boot_ms = 0;
-       uint8_t target_system = 0;
-       uint8_t target_component = 0;
-       uint8_t coordinate_frame = 5;
-       uint16_t type_mask = 0;
-       int32_t lat_int = 0;
-       int32_t lon_int = 0;
-       float alt = 0;
-       float vx = 0;
-       float vy = 0;
-       float vz = 0;
-       float afx = 0;
-       float afy = 0;
-       float afz = 0;
-       float yaw = 0;
-       float yaw_rate = 0;
+    if(key == "DESIRED_HEADING" || key == "DESIRED_SPEED"){
 
-       uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&msg,time_boot_ms,target_system,target_component,coordinate_frame,type_mask,lat_int, lon_int, alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
-       // mavlink_set_position_target_global_int_t sp;
-       // sp.target_system = 0;
-       char buf[300];
+      m_desired_heading_rad = (float) m_desired_heading_deg * (PI / 180.0);
+      // cout<<"m_desired_heading_rad: "<<m_desired_heading_rad<<endl;
+      vx = (float) m_desired_speed * sin (m_desired_heading_rad);
+      // cout<<"vx: "<<vx<<endl;
+      vy = (float) m_desired_speed * cos (m_desired_heading_rad);
+      // cout<<"vy: "<<vy<<endl;
+      yaw = (float) m_desired_heading_rad;
+      // cout<<"yaw: "<<yaw<<endl;
 
-       unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &msg);
 
-       //send binary format to MOOSDB
-       //std::vector<unsigned char> X(1000);
-       Notify("MAVLINK_MESSAGE",(void*)buf,len);
+      coordinate_frame = 5;
+      time_boot_ms = (uint32_t) (get_time_usec()/1000);
+      
+      char buf[300];
+      uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&m_mavlink_msg,
+                                                                        time_boot_ms,target_system,target_component,
+                                                                        coordinate_frame,type_mask,lat_int, lon_int, 
+                                                                        alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
+      unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &m_mavlink_msg);
 
-       //debug of mavlink_message_t for confirmation
-       uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&msg);
-       Notify("VERIFY_FRAME",test_frame);
-     }
+      //send binary format to MOOSDB
+      Notify("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT",(void*)buf,len);
 
-     else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
-       reportRunWarning("Unhandled Mail: " + key);
-   }
-	
-   return(true);
+      //debug of mavlink_message_t for confirmation
+      /*********************************************/
+      if (DEBUG){
+        uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&m_mavlink_msg);
+        Notify("VERIFY_FRAME",test_frame);
+
+        float test_vx = mavlink_msg_set_position_target_global_int_get_vx(&m_mavlink_msg);
+        Notify("VERIFY_VX",test_vx);
+
+        uint32_t test_time = mavlink_msg_set_position_target_global_int_get_time_boot_ms(&m_mavlink_msg);
+        Notify("VERIFY_TIME",test_time);
+
+        float test_yaw = mavlink_msg_set_position_target_global_int_get_yaw(&m_mavlink_msg);
+        Notify("VERIFY_YAW",test_yaw);
+      }
+      /***********************************************/
+    }else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
+      reportRunWarning("Unhandled Mail: " + key);
+  }
+
+  return(true);
 }
 
 //---------------------------------------------------------
@@ -159,9 +231,8 @@ bool MavlinkConverter::OnStartUp()
 void MavlinkConverter::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
-  Register("TARGET_SYSTEM",0);
-  Register("TARGET_COMPONENT",0);
-  // Register("FOOBAR", 0);
+  Register("DESIRED_SPEED",DEFAULT_REGISTER_RATE);
+  Register("DESIRED_HEADING",DEFAULT_REGISTER_RATE);
 }
 
 

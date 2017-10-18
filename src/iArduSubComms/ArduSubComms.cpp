@@ -9,7 +9,6 @@
 #include "MBUtils.h"
 #include "ACTable.h"
 #include "ArduSubComms.h"
-// #include "UDPClient.hpp"
 
 // Max rate to receive MOOS updates (0 indicates no rate, get all)
 #define DEFAULT_REGISTER_RATE 0.0
@@ -60,8 +59,8 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
       m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
 
       if(SIMULATION){
-        // TODO
-        // boost::asio::write(*m_udp, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+        // TODO -- Is this right?
+        client->send(m_mavlink_msg->c_str());
       }else{
         boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
       }
@@ -160,9 +159,8 @@ bool ArduSubComms::OnStartUp()
 
   if(SIMULATION){
     // TODO -- Is this right?
-    udp::endpoint local_endpoint = boost::asio::ip::udp::endpoint(
-    boost::asio::ip::address::from_string(m_mavlink_host), boost::lexical_cast<int>(m_mavlink_port));
-    m_udp = boost::shared_ptr<udp::socket> (new udp::socket(m_io, local_endpoint));
+    client = new UDPClient(m_io, m_mavlink_host, m_mavlink_port);
+
   }else{
     m_serial = boost::shared_ptr<boost::asio::serial_port>(new boost::asio::serial_port(m_io, m_mavlink_port));
     m_serial->set_option(boost::asio::serial_port_base::baud_rate(m_mavlink_baud));

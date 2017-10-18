@@ -9,8 +9,11 @@
 #define ArduSubComms_HEADER
 
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 #include "mavlink.h"
+
+using boost::asio::ip::udp;
 
 class ArduSubComms : public AppCastingMOOSApp
 {
@@ -34,11 +37,12 @@ class ArduSubComms : public AppCastingMOOSApp
 
  private: // State variables
    std::string*                                m_mavlink_msg;
+   std::string                                 m_mavlink_host;
    std::string                                 m_mavlink_port;
    unsigned int                                m_mavlink_baud;
    boost::asio::io_service                     m_io;
    boost::shared_ptr<boost::asio::serial_port> m_serial;
-
+   boost::shared_ptr<udp::socket>              m_udp;
 };
 
 #endif

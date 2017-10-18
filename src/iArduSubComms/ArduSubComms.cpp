@@ -9,12 +9,16 @@
 #include "MBUtils.h"
 #include "ACTable.h"
 #include "ArduSubComms.h"
+// #include "UDPClient.hpp"
 
 // Max rate to receive MOOS updates (0 indicates no rate, get all)
 #define DEFAULT_REGISTER_RATE 0.0
 
 // Enable/disable debug code
 #define DEBUG 1
+
+// Enable/disable simulation mode (in SITL)
+#define SIMULATION 0
 
 using namespace std;
 
@@ -24,8 +28,13 @@ using namespace std;
 ArduSubComms::ArduSubComms()
 {
   m_mavlink_msg = new std::string();
-  m_mavlink_port = "/dev/ttyUSB0";
-  m_mavlink_baud = 115200;
+  if(SIMULATION){
+    m_mavlink_host = "localhost";
+    m_mavlink_port = "14550";
+  }else{
+    m_mavlink_port = "/dev/ttyUSB0";
+    m_mavlink_baud = 115200;
+  }
 }
 
 //---------------------------------------------------------
@@ -49,7 +58,13 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
 
     if(p->IsName("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT")) {
       m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
-      boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+
+      if(SIMULATION){
+        // TODO
+        // boost::asio::write(*m_udp, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+      }else{
+        boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+      }
 
       //debug of mavlink_message_t for confirmation
       /*********************************************/
@@ -143,8 +158,15 @@ bool ArduSubComms::OnStartUp()
 
   }
 
-  m_serial = boost::shared_ptr<boost::asio::serial_port>(new boost::asio::serial_port(m_io, m_mavlink_port));
-  m_serial->set_option(boost::asio::serial_port_base::baud_rate(m_mavlink_baud));
+  if(SIMULATION){
+    // TODO -- Is this right?
+    udp::endpoint local_endpoint = boost::asio::ip::udp::endpoint(
+    boost::asio::ip::address::from_string(m_mavlink_host), boost::lexical_cast<int>(m_mavlink_port));
+    m_udp = boost::shared_ptr<udp::socket> (new udp::socket(m_io, local_endpoint));
+  }else{
+    m_serial = boost::shared_ptr<boost::asio::serial_port>(new boost::asio::serial_port(m_io, m_mavlink_port));
+    m_serial->set_option(boost::asio::serial_port_base::baud_rate(m_mavlink_baud));
+  }
 
   registerVariables();
   return(true);

@@ -17,7 +17,7 @@
 #define DEBUG 1
 
 // Enable/disable simulation mode (in SITL)
-#define SIMULATION 0
+#define SIMULATION 1
 
 using namespace std;
 
@@ -28,7 +28,7 @@ ArduSubComms::ArduSubComms()
 {
   m_mavlink_msg = new std::string();
   if(SIMULATION){
-    m_mavlink_host = "localhost";
+    m_mavlink_host = "127.0.0.1";
     m_mavlink_port = "14550";
   }else{
     m_mavlink_port = "/dev/ttyACM0";
@@ -65,9 +65,14 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
         boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
       }
 
+      
+      Notify("VERIFY_MSG",m_mavlink_msg->c_str());
+
+
       //debug of mavlink_message_t for confirmation
       /*********************************************/
       if (DEBUG){
+
         mavlink_message_t mavlink_msg_buf; //INSTANTIATE THE BINARY MAVLINK MESSAGE BUFFER HERE TO TEST
         uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&mavlink_msg_buf);
         Notify("VERIFY_FRAME",test_frame);
@@ -84,7 +89,9 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
       /***********************************************/
       
       delete m_mavlink_msg;
-    }
+
+    }else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
+      reportRunWarning("Unhandled Mail: " + key);
 
     #if 0 // Keep these around just for template
       string comm  = msg.GetCommunity();
@@ -96,8 +103,7 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
       bool   mstr  = msg.IsString();
     #endif
 
-    if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
-      reportRunWarning("Unhandled Mail: " + key);
+    
    }
 
    return(true);

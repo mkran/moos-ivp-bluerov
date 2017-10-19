@@ -17,7 +17,7 @@
 #define DEBUG 1
 
 // Enable/disable simulation mode (in SITL)
-#define SIMULATION 0
+#define SIMULATION 1
 
 using namespace std;
 
@@ -41,6 +41,7 @@ ArduSubComms::ArduSubComms()
 
 ArduSubComms::~ArduSubComms()
 {
+  client->socket_.close();
 }
 
 //---------------------------------------------------------

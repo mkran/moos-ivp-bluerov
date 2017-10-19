@@ -31,6 +31,7 @@ ProcessConfig = ANTLER
   Run = uProcessWatch	  @ NewConsole = false
   Run = pNodeReporter	  @ NewConsole = false
   Run = pMavlinkConverter @ Newconsole = false
+  Run = iArduSubComms @ Newconsole = false
 }
 
 //------------------------------------------
@@ -222,6 +223,15 @@ ProcessConfig = pNodeReporter
 // pMavlinkConverter config block
 
 ProcessConfig = pMavlinkConverter
+{
+   AppTick   = 4
+   CommsTick = 4
+}
+
+//------------------------------------------------
+// iArduSubComms config block
+
+ProcessConfig = iArduSubComms
 {
    AppTick   = 4
    CommsTick = 4

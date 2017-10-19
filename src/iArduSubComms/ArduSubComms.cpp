@@ -17,7 +17,7 @@
 #define DEBUG 1
 
 // Enable/disable simulation mode (in SITL)
-#define SIMULATION 1
+#define SIMULATION 0
 
 using namespace std;
 
@@ -31,7 +31,7 @@ ArduSubComms::ArduSubComms()
     m_mavlink_host = "localhost";
     m_mavlink_port = "14550";
   }else{
-    m_mavlink_port = "/dev/ttyUSB0";
+    m_mavlink_port = "/dev/ttyACM0";
     m_mavlink_baud = 115200;
   }
 }
@@ -41,7 +41,6 @@ ArduSubComms::ArduSubComms()
 
 ArduSubComms::~ArduSubComms()
 {
-  client->socket_.close();
 }
 
 //---------------------------------------------------------
@@ -61,7 +60,7 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
 
       if(SIMULATION){
         // TODO -- Is this right?
-        client->send(m_mavlink_msg->c_str());
+        m_udp_client->send(m_mavlink_msg->c_str());
       }else{
         boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
       }
@@ -160,7 +159,7 @@ bool ArduSubComms::OnStartUp()
 
   if(SIMULATION){
     // TODO -- Is this right?
-    client = new UDPClient(m_io, m_mavlink_host, m_mavlink_port);
+    m_udp_client = new UDPClient(m_io, m_mavlink_host, m_mavlink_port);
 
   }else{
     m_serial = boost::shared_ptr<boost::asio::serial_port>(new boost::asio::serial_port(m_io, m_mavlink_port));

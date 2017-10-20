@@ -27,16 +27,19 @@ using namespace std;
 MavlinkConverter::MavlinkConverter()
 {
   // m_mavlink_msg = new mavlink_message_t();
-  system_id = 0;
+  system_id = 255;
   component_id = 0;
   time_boot_ms = 0;
-  target_system = 0;
+  target_system = 1;
   target_component = 0;
   coordinate_frame = 0;
-  type_mask = 0;
+  type_mask = 455;// | 0b0000100111111111;
   lat_int = 0;
   lon_int = 0;
   alt = 0.0;
+  x=0.0;
+  y=0.0;
+  z=0.0;
   vx = 0.0;
   vy = 0.0;
   vz = 0.0;
@@ -131,32 +134,38 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
       // cout<<"yaw: "<<yaw<<endl;
 
 
-      coordinate_frame = 5;
+      coordinate_frame = 8;
       time_boot_ms = (uint32_t) (get_time_usec()/1000);
       
       char buf[300];
-      uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&m_mavlink_msg,
-                                                                        time_boot_ms,target_system,target_component,
-                                                                        coordinate_frame,type_mask,lat_int, lon_int, 
-                                                                        alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
+      // uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&m_mavlink_msg,
+                                                                        // time_boot_ms,target_system,target_component,
+                                                                        // coordinate_frame,type_mask,lat_int, lon_int, 
+                                                                        // alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
+      uint16_t length = mavlink_msg_set_position_target_local_ned_pack(system_id,component_id,&m_mavlink_msg,
+                                                                        time_boot_ms, target_system,target_component, 
+                                                                        coordinate_frame,type_mask, x, y, z, 
+                                                                        vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
+      
+
       unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &m_mavlink_msg);
 
       //send binary format to MOOSDB
-      Notify("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT",(void*)buf,len);
+      Notify("MAVLINK_MSG_SET_POSITION_TARGET",(void*)buf,len);
 
       //debug of mavlink_message_t for confirmation
       /*********************************************/
       if (DEBUG){
-        uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&m_mavlink_msg);
+        uint8_t test_frame = mavlink_msg_set_position_target_local_ned_get_coordinate_frame(&m_mavlink_msg);
         Notify("VERIFY_FRAME",test_frame);
 
-        float test_vx = mavlink_msg_set_position_target_global_int_get_vx(&m_mavlink_msg);
+        float test_vx = mavlink_msg_set_position_target_local_ned_get_vx(&m_mavlink_msg);
         Notify("VERIFY_VX",test_vx);
 
-        uint32_t test_time = mavlink_msg_set_position_target_global_int_get_time_boot_ms(&m_mavlink_msg);
+        uint32_t test_time = mavlink_msg_set_position_target_local_ned_get_time_boot_ms(&m_mavlink_msg);
         Notify("VERIFY_TIME",test_time);
 
-        float test_yaw = mavlink_msg_set_position_target_global_int_get_yaw(&m_mavlink_msg);
+        float test_yaw = mavlink_msg_set_position_target_local_ned_get_yaw(&m_mavlink_msg);
         Notify("VERIFY_YAW",test_yaw);
       }
       /***********************************************/

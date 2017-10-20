@@ -26,10 +26,10 @@ using namespace std;
 
 ArduSubComms::ArduSubComms()
 {
-  m_mavlink_msg = new std::string();
+  //m_mavlink_msg = new std::string();
   if(SIMULATION){
     m_mavlink_host = "127.0.0.1";
-    m_mavlink_port = "14550";
+    m_mavlink_port = "14000";
   }else{
     m_mavlink_port = "/dev/ttyACM0";
     m_mavlink_baud = 115200;
@@ -41,6 +41,7 @@ ArduSubComms::ArduSubComms()
 
 ArduSubComms::~ArduSubComms()
 {
+  //delete(m_udp_client);
 }
 
 //---------------------------------------------------------
@@ -55,40 +56,55 @@ bool ArduSubComms::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &msg = *p;
     string key    = msg.GetKey();
 
-    if(p->IsName("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT")) {
-      m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
+    if(p->IsName("MAVLINK_MSG_SET_POSITION_TARGET")) {
+      // m_mavlink_msg = new string((char*)p->GetBinaryData(), p->GetBinaryDataSize());
+      memcpy((void*)&m_mavlink_msg, (void*)p->GetBinaryData(), p->GetBinaryDataSize());
 
       if(SIMULATION){
         // TODO -- Is this right?
-        m_udp_client->send(m_mavlink_msg->c_str());
+        // m_udp_client->send(m_mavlink_msg->c_str());
+        m_udp_client->send(&m_mavlink_msg);
       }else{
-        boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+        // boost::asio::write(*m_serial, boost::asio::buffer(m_mavlink_msg->c_str(), m_mavlink_msg->size()));
+        boost::asio::write(*m_serial, boost::asio::buffer(&m_mavlink_msg, p->GetBinaryDataSize()));
       }
 
       
-      Notify("VERIFY_MSG",m_mavlink_msg->c_str());
+      Notify("VERIFY_MSG",(void*)&m_mavlink_msg, p->GetBinaryDataSize());
 
 
       //debug of mavlink_message_t for confirmation
       /*********************************************/
       if (DEBUG){
 
-        mavlink_message_t mavlink_msg_buf; //INSTANTIATE THE BINARY MAVLINK MESSAGE BUFFER HERE TO TEST
-        uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&mavlink_msg_buf);
-        Notify("VERIFY_FRAME",test_frame);
+        // mavlink_message_t mavlink_msg_buf; //INSTANTIATE THE BINARY MAVLINK MESSAGE BUFFER HERE TO TEST
+        //  uint8_t test_frame = mavlink_msg_set_position_target_local_ned_get_coordinate_frame(&m_mavlink_msg);
+        // Notify("VERIFY_FRAME",test_frame);
 
-        float test_vx = mavlink_msg_set_position_target_global_int_get_vx(&mavlink_msg_buf);
-        Notify("VERIFY_VX",test_vx);
+        // float test_vx = mavlink_msg_set_position_target_local_ned_get_vx(&m_mavlink_msg);
+        // Notify("VERIFY_VX",test_vx);
 
-        uint32_t test_time = mavlink_msg_set_position_target_global_int_get_time_boot_ms(&mavlink_msg_buf);
-        Notify("VERIFY_TIME",test_time);
+        // uint32_t test_time = mavlink_msg_set_position_target_local_ned_get_time_boot_ms(&m_mavlink_msg);
+        // Notify("VERIFY_TIME",test_time);
 
-        float test_yaw = mavlink_msg_set_position_target_global_int_get_yaw(&mavlink_msg_buf);
-        Notify("VERIFY_YAW",test_yaw);
+        // float test_yaw = mavlink_msg_set_position_target_local_ned_get_yaw(&m_mavlink_msg);
+        // Notify("VERIFY_YAW",test_yaw);
+
+        // uint8_t test_frame = mavlink_msg_set_position_target_global_int_get_coordinate_frame(&mavlink_msg_buf);
+        // Notify("VERIFY_FRAME",test_frame);
+
+        // float test_vx = mavlink_msg_set_position_target_global_int_get_vx(&mavlink_msg_buf);
+        // Notify("VERIFY_VX",test_vx);
+
+        // uint32_t test_time = mavlink_msg_set_position_target_global_int_get_time_boot_ms(&mavlink_msg_buf);
+        // Notify("VERIFY_TIME",test_time);
+
+        // float test_yaw = mavlink_msg_set_position_target_global_int_get_yaw(&mavlink_msg_buf);
+        // Notify("VERIFY_YAW",test_yaw);
       }
       /***********************************************/
       
-      delete m_mavlink_msg;
+      // delete m_mavlink_msg;
 
     }else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
@@ -182,7 +198,7 @@ bool ArduSubComms::OnStartUp()
 void ArduSubComms::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
-  Register("MAVLINK_MSG_SET_POSITION_TARGET_GLOBAL_INT", DEFAULT_REGISTER_RATE);
+  Register("MAVLINK_MSG_SET_POSITION_TARGET", DEFAULT_REGISTER_RATE);
 }
 
 

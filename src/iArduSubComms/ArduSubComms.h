@@ -35,8 +35,8 @@ class UDPClient{
          socket_.close();
       }
 
-      void send(const std::string& msg) {
-         socket_.send_to(boost::asio::buffer(msg, msg.size()), endpoint_);
+      void send(const mavlink_message_t* msg) {
+         socket_.send_to(boost::asio::buffer((void*)msg, sizeof(mavlink_message_t)), endpoint_);
       }
 
    private:
@@ -66,7 +66,7 @@ class ArduSubComms : public AppCastingMOOSApp
  private: // Configuration variables
 
  private: // State variables
-   std::string*                                m_mavlink_msg;
+   mavlink_message_t                           m_mavlink_msg;
    std::string                                 m_mavlink_host;
    std::string                                 m_mavlink_port;
    unsigned int                                m_mavlink_baud;

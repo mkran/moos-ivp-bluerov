@@ -28,9 +28,9 @@ published by the MOOS IvP Helm, packages that into a mavlink message
 This app takes the mavlink message "MAVLINK_MSG_SET_POSITION_TARGET" from the MOOSDB, 
 published by pMavlinkConverter, and routes it over a serial port (/dev/ttyACM0 for 
 Pixhawk) and/or a UDP port (eg. 14000 on "127.0.0.1" for SITL). We can toggle between 
-the two using the "SIMULATION" flag. SIMULATION = 1 for activating comms over the UDP 
-port for simulation via SITL and SIMULATION = 0 for activating comms over serial port 
-for use with the BlueROV2.
+the two using the "TOGGLE_PORT" flag. TOGGLE_PORT = 1 for Enabling Comms via UDP (for 
+BlueROV2 control (or in SITL) from MOOS running on GCS) and TOGGLE_PORT = 0 for Enabling 
+Comms via SERIAL Port (for BlueROV2 control from MOOS running on companion computer onboard).
 
 
 #=============================================================================

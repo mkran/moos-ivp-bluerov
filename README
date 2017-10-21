@@ -8,75 +8,166 @@
 #=============================================================================
 # Introduction
 #=============================================================================
-The moos-ivp-bluerov repository contains examples for extending the MOOS-IvP
-Autonomy system. This includes a MOOS application and an IvP behavior.
+
+The moos-ivp-bluerov repository contains an interface for extending the MOOS-IvP
+Autonomy system to work with the BlueROV2 running ArduSub as the front seat 
+controller on a Pixhawk. This includes a 2 MOOS applications and an example 
+mission for testing. 
+
+#---------------------------------------
+# MOOS APP 1: pMavlinkConverter  
+#---------------------------------------
+This app takes as input, the DESIRED_SPEED and DESIRED_HEADING from MOOSDB, 
+published by the MOOS IvP Helm, packages that into a mavlink message 
+"MAVLINK_MSG_SET_POSITION_TARGET", and publishes this message back into the MOOSDB.
+
+#---------------------------------------
+# MOOS APP 2: iArduSubComms  
+#---------------------------------------
+This app takes the mavlink message "MAVLINK_MSG_SET_POSITION_TARGET" from the MOOSDB, 
+published by pMavlinkConverter, and routes it over a serial port (/dev/ttyACM0 for 
+Pixhawk) and/or a UDP port (eg. 14000 on "127.0.0.1" for SITL). We can toggle between 
+the two using the "SIMULATION" flag. SIMULATION = 1 for activating comms over the UDP 
+port for simulation via SITL and SIMULATION = 0 for activating comms over serial port 
+for use with the BlueROV2.
 
 
 #=============================================================================
 # Directory Structure
 #=============================================================================
+
 The directory structure for the moos-ivp-bluerov is decribed below:
 
 bin              - Directory for generated executable files
 build            - Directory for build object files
-build.sh         - Script for building moos-ivp-bluerov
-CMakeLists.txt   - CMake configuration file for the project
-data             - Directory for storing data
-lib              - Directory for generated library files
-missions         - Directory for mission files
-README           - Contains helpful information - (this file).
+missions			  - Directory for mission files
 scripts          - Directory for script files
 src              - Directory for source code
+thirdparty       - Directory for third party libraries
+CMakeLists.txt   - CMake configuration file for the project
+build.sh         - Script for building moos-ivp-bluerov
+clean.sh         - Script for cleaning moos-ivp-bluerov
+LICENSE          - Contains license information
+README           - Contains helpful information - (this file).
 
 
 #=============================================================================
-# Build Instructions
+# Installation Instructions -- Linux/Mac users
 #=============================================================================
-#--------------------
-# Linux and Mac Users
-#--------------------
 
-To build on Linux and Apple platforms, execute the build script within this
-directory:
+#---------------------------------------
+# Setup the moos-ivp-bluerov extension 
+#---------------------------------------
+First, to setup MOOS IvP, execute the following from the command line:
 
-   $ ./build.sh
+   $ cd ~
+	$ sudo apt-get install subversion
+	$ svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk/ moos-ivp
+	$ cd ~/moos-ivp/
+	$ svn update
+	$ sudo apt-get install g++ cmake xterm libfltk1.3-dev freeglut3-dev 
+	$ sudo apt-get libpng12-dev libjpeg-dev libxft-dev libxinerama-dev libtiff5-dev
+	$ cd ~/moos-ivp/
+	$ ./build-moos.sh
+	$ ./build-ivp.sh
+	$ echo 'export PATH=$PATH:~/moos-ivp/bin'  >> ~/.bashrc
+	$ source ~/.bashrc
 
-To build without using the supplied script, execute the following commands
-within this directory:
 
-   $ mkdir -p build
-   $ cd build
-   $ cmake ../
-   $ make
-   $ cd ..
+#---------------------------------------
+# Setup the moos-ivp-bluerov extension 
+#---------------------------------------
+Next, to setup the moos-ivp-bluerov extension, execute the following from the 
+command line:
 
+	$ cd ~
+	$ sudo apt-get install git 
+	$ git clone https://github.com/mkran/moos-ivp-bluerov
+	$ cd ~/moos-ivp-bluerov/
+	$ ./build.sh
+	$ echo 'export PATH=$PATH:~/moos-ivp-bluerov/bin'  >> ~/.bashrc
+	$ source ~/.bashrc
 
-#--------------
-# Windows Users
-#--------------
-To build on Windows platform, open CMake using your favorite shortcut. Then 
-set the source directory to be this directory and set the build directory
-to the "build" directory inside this directory.
+#---------------------------------------
+# Setup the SITL for testing 
+#---------------------------------------
+To test our moos-ivp-bluerov extension in simulation, we will first need to setup 
+SITL to run with ArduSub. Execute the following from the command line:
 
-The source directory is typically next to the question:
-   "Where is the source code?"
+	$ cd ~
+	$ git clone git://github.com/ArduPilot/ardupilot.git
+	$ cd ardupilot
+	$ git submodule update --init --recursive
+	$ sudo apt-get install python-matplotlib python-serial python-wxgtk3.0 python-wxtools python-lxml
+	$ sudo apt-get install python-scipy python-opencv ccache gawk git python-pip python-pexpect
+	$ sudo pip install future pymavlink MAVProxy
+	$ echo 'export PATH=$PATH:$HOME/ardupilot/Tools/autotest' >> ~/.bashrc
+	$ echo 'export PATH=/usr/lib/ccache:$PATH' >> ~/.bashrc 
+	$ source ~/.bashrc
 
-The build directory is typically next to the question:
-   "Where to build the binaries?"
-
-Alternatively, CMake can be invoked via the command line. However, you must
-specify your gernerator. Use "cmake --help" for a list of generators and
-additional help.
 
 #=============================================================================
-# Environment variables
+# Running Instructions
 #=============================================================================
-The moos-ivp-bluerov binaries files should be added to your path to allow them
-to be launched from pAntler. 
 
-In order for generated IvP Behaviors to be recognized by the IvP Helm, you
-should add the library directory to the "IVP_BEHAVIOR_DIRS" environment 
-variable.
+#-------------------------------------
+# Running an example mission: s1_alpha 
+#-------------------------------------
+Execute the following from the command line:
+
+	$ cd ~/moos-ivp-bluerov/missions/s1_alpha/
+	$ pAntler alpha.moos
+
+Next, hit "DEPLOY" on the pMarineViewer window. You should see a yellow kayak-like  
+vehicle move around in pMarineViewer and execute the s1_alpha mission.
+
+#---------------------------------------
+# Running the s1_alpha mission in SITL 
+#---------------------------------------
+First, run the s1_alpha mission as per the instructions above. Then, execute the 
+following from the command line:
+
+	$ cd ~/ardupilot/ArduSub/
+	$ sim_vehicle.py -v ArduSub --map --out=udpin:127.0.0.1:14000
+
+This will open up a MAVProxy console. Wait till the "ArduSub" vehicle gets a GPS lock. 
+Then, type in the following: 
+
+	MAV> mode GUIDED
+   MAV> arm throttle
+
+Next, hit "DEPLOY" on the pMarineViewer window. You should also see the "ArduSub" 
+vehicle move around in SITL and execute the s1_alpha mission.
+
+#----------------------------------------
+# Running the s1_alpha mission in BlueROV 
+#----------------------------------------
+First, plug in the ethernet tether to your laptop that is running MOOS. 
+
+Next, run the s1_alpha mission as per the instructions above.
+
+Assuming that you have configured MAVProxy correctly, you should be able to talk to 
+your BlueROV2 via MAVProxy. Run the following from the command line:
+
+	$ mavproxy.py --out=udpin:127.0.0.1:14000
+
+This will open up a MAVProxy console. Wait till the all the parameters load correctly
+and make sure that  BlueROV2 is connected properly. Then, type in the following: 
+
+	MAV> mode GUIDED
+   MAV> arm throttle
+
+Next, hit "DEPLOY" on the pMarineViewer window. You should also see the BlueROV2 
+execute the s1_alpha mission. 
+
+
+#=============================================================================
+# Disclaimer
+#=============================================================================
+
+I am not responsible, if your BlueROV2 crashes into something! This is a work in progress. 
+
+There is still quite a bit of work to do to make the BlueROV situationally aware :)
 
 ##############################################################################
 #                               END of README

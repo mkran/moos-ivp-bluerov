@@ -73,7 +73,6 @@ class ArduSubComms : public AppCastingMOOSApp
    boost::asio::io_service                     m_io;
    boost::shared_ptr<boost::asio::serial_port> m_serial;
    boost::shared_ptr<udp::socket>              m_udp;
-   // UDPClient client(boost::asio::io_service m_io, std::string m_mavlink_host, std::string m_mavlink_port);
    UDPClient *m_udp_client;
 };
 

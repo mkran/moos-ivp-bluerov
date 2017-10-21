@@ -41,9 +41,6 @@ class MavlinkConverter : public AppCastingMOOSApp
   uint8_t target_component;
   uint8_t coordinate_frame;
   uint16_t type_mask;
-  int32_t lat_int;
-  int32_t lon_int;
-  float alt;
   float x;
   float y;
   float z;

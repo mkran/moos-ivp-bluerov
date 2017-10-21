@@ -13,6 +13,18 @@
 #include "sys/time.h"
 #include "math.h"
 
+#define SYSTEM_ID 255
+#define COMPONENT_ID 0
+#define TARGET_SYSTEM 1
+#define TARGET_COMPONENT 0
+
+#define COORDINATE_FRAME 8
+
+// 1) For both velocity (vx,vy,vz) and yaw angle: type_mask = 2503; 
+// 2) For just yaw angle: type_mask = 2559; 
+// 3) For just velocity (vx,vy,vz): type_mask = 455;
+#define TYPE_MASK 2503 
+
 // Max rate to receive MOOS updates (0 indicates no rate, get all)
 #define DEFAULT_REGISTER_RATE 0.0
 
@@ -24,19 +36,40 @@ using namespace std;
 //---------------------------------------------------------
 // Constructor
 
+/**
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param time_boot_ms Timestamp in milliseconds since system boot
+ * @param target_system System ID
+ * @param target_component Component ID
+ * @param coordinate_frame Valid options are: MAV_FRAME_LOCAL_NED = 1, MAV_FRAME_LOCAL_OFFSET_NED = 7, MAV_FRAME_BODY_NED = 8, MAV_FRAME_BODY_OFFSET_NED = 9
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate
+ * @param x X Position in NED frame in meters
+ * @param y Y Position in NED frame in meters
+ * @param z Z Position in NED frame in meters (note, altitude is negative in NED)
+ * @param vx X velocity in NED frame in meter / s
+ * @param vy Y velocity in NED frame in meter / s
+ * @param vz Z velocity in NED frame in meter / s
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param yaw yaw setpoint in rad
+ * @param yaw_rate yaw rate setpoint in rad/s
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+
 MavlinkConverter::MavlinkConverter()
 {
   // m_mavlink_msg = new mavlink_message_t();
-  system_id = 255;
+  system_id = 0;
   component_id = 0;
   time_boot_ms = 0;
-  target_system = 1;
+  target_system = 0;
   target_component = 0;
   coordinate_frame = 0;
-  type_mask = 455;// | 0b0000100111111111;
-  lat_int = 0;
-  lon_int = 0;
-  alt = 0.0;
+  type_mask = 0; 
   x=0.0;
   y=0.0;
   z=0.0;
@@ -125,23 +158,21 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
     if(key == "DESIRED_HEADING" || key == "DESIRED_SPEED"){
 
       m_desired_heading_rad = (float) m_desired_heading_deg * (PI / 180.0);
-      // cout<<"m_desired_heading_rad: "<<m_desired_heading_rad<<endl;
-      vx = (float) m_desired_speed * sin (m_desired_heading_rad);
-      // cout<<"vx: "<<vx<<endl;
-      vy = (float) m_desired_speed * cos (m_desired_heading_rad);
-      // cout<<"vy: "<<vy<<endl;
+      vy = (float) m_desired_speed * sin (m_desired_heading_rad);
+      vx = (float) m_desired_speed * cos (m_desired_heading_rad);
       yaw = (float) m_desired_heading_rad;
-      // cout<<"yaw: "<<yaw<<endl;
+      
 
+      system_id = SYSTEM_ID;
+      component_id = COMPONENT_ID;
+      target_system = TARGET_SYSTEM;
+      target_component = TARGET_COMPONENT;
+      coordinate_frame = COORDINATE_FRAME;
+      type_mask = TYPE_MASK; 
 
-      coordinate_frame = 8;
       time_boot_ms = (uint32_t) (get_time_usec()/1000);
       
       char buf[300];
-      // uint16_t length = mavlink_msg_set_position_target_global_int_pack(system_id,component_id,&m_mavlink_msg,
-                                                                        // time_boot_ms,target_system,target_component,
-                                                                        // coordinate_frame,type_mask,lat_int, lon_int, 
-                                                                        // alt, vx,  vy,  vz,  afx,  afy,  afz,  yaw,  yaw_rate);
       uint16_t length = mavlink_msg_set_position_target_local_ned_pack(system_id,component_id,&m_mavlink_msg,
                                                                         time_boot_ms, target_system,target_component, 
                                                                         coordinate_frame,type_mask, x, y, z, 
@@ -156,14 +187,17 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
       //debug of mavlink_message_t for confirmation
       /*********************************************/
       if (DEBUG){
+        uint32_t test_time = mavlink_msg_set_position_target_local_ned_get_time_boot_ms(&m_mavlink_msg);
+        Notify("VERIFY_TIME",test_time);
+
         uint8_t test_frame = mavlink_msg_set_position_target_local_ned_get_coordinate_frame(&m_mavlink_msg);
         Notify("VERIFY_FRAME",test_frame);
 
         float test_vx = mavlink_msg_set_position_target_local_ned_get_vx(&m_mavlink_msg);
         Notify("VERIFY_VX",test_vx);
 
-        uint32_t test_time = mavlink_msg_set_position_target_local_ned_get_time_boot_ms(&m_mavlink_msg);
-        Notify("VERIFY_TIME",test_time);
+        float test_vy = mavlink_msg_set_position_target_local_ned_get_vy(&m_mavlink_msg);
+        Notify("VERIFY_VY",test_vy);
 
         float test_yaw = mavlink_msg_set_position_target_local_ned_get_yaw(&m_mavlink_msg);
         Notify("VERIFY_YAW",test_yaw);
@@ -250,15 +284,15 @@ void MavlinkConverter::registerVariables()
 
 bool MavlinkConverter::buildReport() 
 {
-  m_msgs << "============================================ \n";
-  m_msgs << "File:                                        \n";
-  m_msgs << "============================================ \n";
+  // m_msgs << "============================================ \n";
+  // m_msgs << "pMavlinkConverter                                        \n";
+  // m_msgs << "============================================ \n";
 
-  ACTable actab(4);
-  actab << "Alpha | Bravo | Charlie | Delta";
-  actab.addHeaderLines();
-  actab << "one" << "two" << "three" << "four";
-  m_msgs << actab.getFormattedString();
+  // ACTable actab(4);
+  // actab << "Alpha | Bravo | Charlie | Delta";
+  // actab.addHeaderLines();
+  // actab << "one" << "two" << "three" << "four";
+  // m_msgs << actab.getFormattedString();
 
   return(true);
 }

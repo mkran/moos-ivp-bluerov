@@ -1,4 +1,5 @@
 ##############################################################################
+# NAME:        Muthukumaran Chandrasekaran
 # FILE:        moos-ivp-bluerov/README
 # DATE:        2017/10/12
 # DESCRIPTION: Contains important information regarding the moos-ivp-bluerov
@@ -40,7 +41,7 @@ The directory structure for the moos-ivp-bluerov is decribed below:
 
 bin              - Directory for generated executable files
 build            - Directory for build object files
-missions			  - Directory for mission files
+missions         - Directory for mission files
 scripts          - Directory for script files
 src              - Directory for source code
 thirdparty       - Directory for third party libraries
@@ -56,11 +57,11 @@ README           - Contains helpful information - (this file).
 #=============================================================================
 
 #---------------------------------------
-# Setup the moos-ivp-bluerov extension 
+# Setup MOOS IvP 
 #---------------------------------------
 First, to setup MOOS IvP, execute the following from the command line:
 
-   $ cd ~
+	$ cd ~
 	$ sudo apt-get install subversion
 	$ svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk/ moos-ivp
 	$ cd ~/moos-ivp/
@@ -134,7 +135,7 @@ This will open up a MAVProxy console. Wait till the "ArduSub" vehicle gets a GPS
 Then, type in the following: 
 
 	MAV> mode GUIDED
-   MAV> arm throttle
+	MAV> arm throttle
 
 Next, hit "DEPLOY" on the pMarineViewer window. You should also see the "ArduSub" 
 vehicle move around in SITL and execute the s1_alpha mission.
@@ -155,7 +156,7 @@ This will open up a MAVProxy console. Wait till the all the parameters load corr
 and make sure that  BlueROV2 is connected properly. Then, type in the following: 
 
 	MAV> mode GUIDED
-   MAV> arm throttle
+	MAV> arm throttle
 
 Next, hit "DEPLOY" on the pMarineViewer window. You should also see the BlueROV2 
 execute the s1_alpha mission. 

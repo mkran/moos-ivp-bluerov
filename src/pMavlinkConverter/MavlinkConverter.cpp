@@ -57,12 +57,10 @@ using namespace std;
  * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  * @param yaw yaw setpoint in rad
  * @param yaw_rate yaw rate setpoint in rad/s
- * @return length of the message in bytes (excluding serial stream start sign)
  */
 
 MavlinkConverter::MavlinkConverter()
 {
-  // m_mavlink_msg = new mavlink_message_t();
   system_id = 0;
   component_id = 0;
   time_boot_ms = 0;

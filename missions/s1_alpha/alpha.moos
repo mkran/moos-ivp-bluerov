@@ -79,8 +79,8 @@ ProcessConfig = uSimMarine
   CommsTick	= 4
 
   start_x       = 0
-  start_y       = -20
-  start_heading = 180
+  start_y       = 0
+  start_heading = 0
   start_speed   = 0
 
   prefix        = NAV
@@ -151,9 +151,9 @@ ProcessConfig = pMarineViewer
 	//tiff_file            = MIT_SP.tif
 
   set_pan_x            = -90
-  set_pan_y            = -280
+  set_pan_y            = -180
   zoom                 = 0.65
-  vehicle_shape_scale  = 1.5
+  vehicle_shape_scale  = 0.5
   hash_delta           = 50
   hash_shade           = 0.22
   hash_viewable        = true

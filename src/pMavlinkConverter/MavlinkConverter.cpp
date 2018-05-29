@@ -18,12 +18,13 @@
 #define TARGET_SYSTEM 1
 #define TARGET_COMPONENT 0
 
-#define COORDINATE_FRAME 8
+#define COORDINATE_FRAME 1
 
 // 1) For both velocity (vx,vy,vz) and yaw angle: type_mask = 2503; 
 // 2) For just yaw angle: type_mask = 2559; 
-// 3) For just velocity (vx,vy,vz): type_mask = 455;
-#define TYPE_MASK 2503 
+// 3) For velocity (vx,vy,vz) and yaw angle and yaw rate: type_mask = 455;
+// 4) For just velocity (vx,vy,vz): type_mask = 3527; 
+#define TYPE_MASK 455 
 
 // Max rate to receive MOOS updates (0 indicates no rate, get all)
 #define DEFAULT_REGISTER_RATE 0.0
@@ -148,7 +149,7 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
       }else if(mstr.compare("") != 0){
         m_desired_heading_deg = atof(mstr.c_str());
       }else{
-        m_desired_heading_deg = -4.0;
+        m_desired_heading_deg = -4;
         cout<<"Crappy Heading!"<<endl;
       }
     }
@@ -158,7 +159,10 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
       m_desired_heading_rad = (float) m_desired_heading_deg * (PI / 180.0);
       vy = (float) m_desired_speed * sin (m_desired_heading_rad);
       vx = (float) m_desired_speed * cos (m_desired_heading_rad);
+	  //vy = 0.0f;
+      //vx = (float) m_desired_speed;
       yaw = (float) m_desired_heading_rad;
+	  yaw_rate = 0.2618;
       
 
       system_id = SYSTEM_ID;
@@ -199,6 +203,9 @@ bool MavlinkConverter::OnNewMail(MOOSMSG_LIST &NewMail)
 
         float test_yaw = mavlink_msg_set_position_target_local_ned_get_yaw(&m_mavlink_msg);
         Notify("VERIFY_YAW",test_yaw);
+
+		float test_yaw_rate = mavlink_msg_set_position_target_local_ned_get_yaw_rate(&m_mavlink_msg);
+        Notify("VERIFY_YAW_RATE",test_yaw_rate);
       }
       /***********************************************/
     }else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
